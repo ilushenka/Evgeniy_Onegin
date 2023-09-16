@@ -1,112 +1,49 @@
-#include <stdio.h>
+#include "sort.h"
 
-#define ANSI_COLOR_RED     "\x1b[31m"
-#define ANSI_COLOR_GREEN   "\x1b[32m"
-#define ANSI_COLOR_PURPLE   "\x1b[38;5;140m"
-#define ANSI_COLOR_LBLUE   "\x1b[38;5;20m"
-#define ANSI_COLOR_YELLOW   "\x1b[38;5;221m"
-#define ANSI_COLOR_TURQUOISE  "\x1b[38;5;87m"
-#define ANSI_COLOR_ORANGE   "\x1b[38;5;209m"
-#define ANSI_COLOR_RESET   "\x1b[0m"
-
-#define SIZE 28
- 
-
-size_t partition(int *data, size_t left, size_t right);
-
-void sort(int *data, size_t left, size_t right);
-void sort_two(int *data, size_t left, size_t right);
-
-void swap(int *a, int *b);
-
-void print_array(int *data, size_t left, size_t right, size_t mid);
-//void debug(int *data, size_t left, size_t right, size_t mid);
-
-int main() {
-	int data[] = 	{
-					58, 25, 46, 70, 72, 75, 2, 76, 60, 51, 54, 41, 64, 67, 58, 25, 46, 70, 72, 75, 2, 76, 60, 51, 54, 41, 64, 67};
-	for(size_t i = 0; i < SIZE; i++)
-		printf("%d ", data[i]);
-	printf("\n");
-
-	sort(data, 0, SIZE - 1);
-	for(size_t i = 0; i < SIZE; i++)
-		printf("%d ", data[i]);
-	printf("\n");
-}
-
-void sort(int *data, size_t left, size_t right) {
+void sort(void *data, size_t left, size_t right, int (*comparator)(const void *, const void *), size_t type_size) {
 	if(right == left + 1) {
-		printf("QSWAP %d WITH %d, LEFT %ld RIGHT %ld\n", data[left], data[right], left, right);		
-		sort_two(data, left, right);
+		sort_two((void **)data, left, right, comparator, type_size);
 		return;
 	}
 	if(right == left)
 		return;
 	
-	size_t mid = partition(data, left, right);
+	size_t mid = partition((void **)data, left, right, comparator, type_size);
 
 	if(mid > left)
-		sort(data, left, mid);
+		sort(data, left, mid, comparator, type_size);
 	if(mid+1 < right)
-		sort(data, (mid + 1), right);
+		sort(data, (mid + 1), right, comparator, type_size);
 }
 
-void sort_two(int *data, size_t left, size_t right) {
-	if(data[left] > data[right])
-		swap(data + left, data + right);
+void sort_two(void **data, size_t left, size_t right, int (*comparator)(const void *, const void *), size_t type_size) {
+	if(comparator(data + right, data + left) < 0)
+		swap(data + left, data + right, type_size);
 }
 
-void swap(int *a, int *b) {
-	int temp = *a;
-	*a = *b;
-	*b = temp;
+void swap(void *a, void *b, size_t size) {
+	void **temp = (void **)calloc(size, sizeof(char));
+	memcpy(temp, a, size);
+	memcpy(a, b, size);
+	memcpy(b, temp, size);
+	free(temp);
 }
 
-void print_array(int *data, size_t left, size_t right, size_t mid) {
-	for(size_t i = 0; i < SIZE; i++) {
-		if(i == mid)
-			printf(ANSI_COLOR_GREEN"%2d ", data[i]);
-		else if(i < left)
-			printf(ANSI_COLOR_TURQUOISE"%2d ", data[i]);
-		else if(i == left)
-			printf(ANSI_COLOR_LBLUE"%2d ", data[i]);
-		else if(i == right)
-			printf(ANSI_COLOR_RED"%2d ", data[i]);
-		else if(i > left && i < mid)
-			printf(ANSI_COLOR_PURPLE"%2d ", data[i]);
-		else if(i < right && i > mid)
-			printf(ANSI_COLOR_ORANGE"%2d ", data[i]);
-		else if(i > right)
-			printf(ANSI_COLOR_YELLOW"%2d ", data[i]);
-	}
-	printf("\n" ANSI_COLOR_RESET);
-}
-
-size_t partition(int *data, size_t left, size_t right) {
+size_t partition(void **data, size_t left, size_t right, int (*comparator)(const void *, const void *), size_t type_size) {
 	size_t mid = (left + right)/2;
-	int mid_elem = data[mid];
-	print_array(data, left, right, mid);
+	void **mid_elem = (void **)calloc(type_size, sizeof(char));
+	memcpy(mid_elem, data + mid, type_size);
 	while(true) {
-		while(data[left] < mid_elem)
+		while(comparator(data + left, mid_elem) < 0)
 			left++;
-		while(data[right] > mid_elem)
+		while(comparator(mid_elem, data + right) < 0)
 			right--;
-		print_array(data, left, right, mid);
-		if(left >= right)
+		if(left >= right) {
+			free(mid_elem);
 			return right;
-		swap(data + left, data + right);
-		printf("SWAP %d WITH %d, LEFT %ld RIGHT %ld, MID %ld\n", data[left], data[right], left, right, mid);
+		}
+		swap(data + left, data + right, type_size);
 		left++;
 		right--;
-		print_array(data, left, right, mid);
 	}
-	printf("Закончен цикл\n");
 }
-
-/*void debug(int *data, size_t left, size_t right, size_t mid) {
-	printf("----------------------\n");
-	print_array(data);
-	printf("data[left] %d, data[right] %d, data[mid] %d, left %ld, right %ld, mid %ld \n", data[left], data[right], data[mid], left, right, mid);
-	printf("----------------------\n");
-}*/
