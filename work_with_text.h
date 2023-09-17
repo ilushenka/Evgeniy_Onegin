@@ -1,10 +1,11 @@
 #pragma once
 
+#include <ctype.h>
 #include "sort.h"
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <assert.h>// сделать функцию, которая ищет символ, а также сделать функцию, которая меняет \n на \0 отдельно от первой.
+#include <assert.h>
 
 typedef struct {
 	size_t poem_size = 0;
@@ -13,7 +14,11 @@ typedef struct {
 	char **poem_lines = NULL;
 }Text;
 
-int comparator(const void *a, const void *b);
+int left_compare(const void *a, const void *b);
+int right_compare(const void *a, const void *b);
+const char * move_left_pointer(const char *str);
+const char * move_right_pointer(const char *str);
+
 
 FILE * file_init(int argc, char *argv[]);
 void work_with_file(int argc, char *argv[], Text *poem);

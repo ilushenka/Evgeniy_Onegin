@@ -23,11 +23,11 @@ void sort_two(void *data, size_t left, size_t right, int (*comparator)(const voi
 
 void swap(void *a, void *b, size_t size) {
 	void **temp = (void **)calloc(size, sizeof(char));
-	//printf("\n\n%d %d \n\n", *(int *)a, *(int *)b );
+	
 	memcpy(temp, a, size);
 	memcpy(a, b, size);
 	memcpy(b, temp, size);
-	//printf("\n\n%d %d \n\n", *(int *)a, *(int *)b );
+
 	free(temp);
 }
 
@@ -35,17 +35,19 @@ size_t partition(void *data, size_t left, size_t right, int (*comparator)(const 
 	size_t mid = (left + right)/2;
 	void **mid_elem = (void **)calloc(type_size, sizeof(char));
 	memcpy(mid_elem, (char *)data + type_size * mid, type_size);
+	
 	while(true) {
 		while(comparator((char *)data + type_size * left, mid_elem) < 0)
 			left++;
+		
 		while(comparator(mid_elem, (char *)data + type_size * right) < 0)
 			right--;
+		
 		if(left >= right) {
 			free(mid_elem);
+			
 			return right;
 		}
-	//	printf("SWAP left %ld, right %ld, l%d, r%d\n ", left, right, *(int *)((char*)data + left), *(int ((char*)data + right));
-	//	swap((void **)data + left, (void **)data + right, type_size);
 		swap(((char *)data + left * type_size), ((char *)data + type_size * right), type_size);
 		left++;
 		right--;
