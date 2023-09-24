@@ -1,179 +1,96 @@
 #include "work_with_text.h"
 
 int main(int argc, char *argv[]) {
-	Text poem;
-	work_with_file(argc, argv, &poem);	
+	Text poem = {};
+	Text_read_from_file(argc, argv, &poem);	
 	put_text_in_lines(&poem);
-
-	sort(poem.poem_lines, 0, poem.n_lines - 1, left_compare, sizeof(char**));	
-	for(size_t i = 0; i < poem.n_lines; i++)
-		printf("%s\n", poem.poem_lines[i]);
-
-	destroy_structure(&poem);
-}
-
-FILE * file_init(int argc, char *argv[]) {
-	if(argc != 2) {
-		printf("wrong program run, error with passed arguments. \nTry to open this program like that: ./example.out text.txt\n");
-		exit(0);
-	}
-	FILE * text_source;
-	if((text_source = fopen(argv[1], "r")) == NULL) {
-		printf("Unable to open file with this name.");
-		exit(0);
-	}
-
-	return text_source;
-}
-
-void work_with_file(int argc, char *argv[], Text *poem) {
-	FILE *fp = file_init(argc, argv);
 	
-	poem->poem_size = file_size(fp);
-	poem->buff = (char *)calloc(poem->poem_size + 1, sizeof(char));
-
-	buff_read(poem, fp);
-
-	fclose(fp);
-}
-
-size_t file_size(FILE *fp) {
-	assert(fp);
-
-	fseek(fp, 0, SEEK_END);
-	size_t poem_size = ftell(fp);
-	fseek(fp, 0, SEEK_SET);
+	MY_ASSERT((argc == 3), "Wrong program usage, error with passed arguments.\n"
+	"Try to open this program like that: ./example.out text.txt dest.txt"
+	"(the first is where we read from, the second is where we write to).\n");
 	
-	return poem_size;
-}
+	FILE * sorted_file = fopen(argv[2], "w+");
 
-void buff_read(Text *poem, FILE * fp) {
-	assert(fp);
+	sort_and_write(sorted_file, &poem, 0,
+				(poem.n_lines - 1), left_compare, sizeof(char**));
+	sort_and_write(sorted_file, &poem, 0,
+				(poem.n_lines - 1), right_compare, sizeof(char**));
 
-	fread(poem->buff, sizeof(char), poem->poem_size, fp);
-	poem->buff[poem->poem_size] = '\n';
-	(poem->poem_size)++;
-}
+	write_buff(sorted_file, &poem.buff);
 
-void put_text_in_lines(Text *poem) {
-	assert(poem->poem_size);
-	assert(poem->buff);
+	fclose(sorted_file);
 	
-	count_lines_num(poem);
-	poem->poem_lines = (char**) calloc(poem->n_lines, sizeof(char*));
-	
-	set_array_lines(poem);
-}
-
-void set_array_lines(Text *poem) {
-	poem->poem_lines[0] = poem->buff;
-	for(size_t i = 0, line = 1; i + 1 < poem->poem_size; i++) {
-		if(poem->buff[i] == '\0')
-			poem->poem_lines[line++] = poem->buff + i + 1;
-	}
-}
-
-void count_lines_num(Text *poem) {
-	assert(poem->poem_size);
-	assert(poem->buff);
-
-	for(size_t i = 0; i < poem->poem_size; i++) {
-		if(poem->buff[i] == '\n') {
-			poem->buff[i] = '\0';
-			poem->n_lines++;
-		}
-	}
-}
-
-void destroy_structure(Text *poem) {
-	free_mem(poem->poem_lines, poem->buff);
-	poem->poem_size = -1;
-	poem->n_lines = -1;
-	poem->poem_lines = NULL;
-	poem->buff = NULL;
-}
-
-void free_mem(char **poem_lines, char *buff) {
-	free(buff);
-	free(poem_lines);
+	text_destructor(&poem);
 }
 
 int left_compare(const void *a, const void *b) {
-	const char *x = *(const char **)a;
-	const char *y = *(const char **)b;
-	x = move_left_pointer(x);
-	y = move_left_pointer(y);
+	const char *str1 = *(const char **)a;
+	const char *str2 = *(const char **)b;
+	str1 = skip_left_pointer(str1);
+	str2 = skip_left_pointer(str2);
 
-	while(*x && *y) {
-		x = move_left_pointer(x);
-		y = move_left_pointer(y);
+	while(*str1 && *str2) {
+		str1 = skip_left_pointer(str1);
+		str2 = skip_left_pointer(str2);
+		char let1 = toupper(*str1);
+		char let2 = toupper(*str2);
 
-		char l1 = toupper(*x);
-		char l2 = toupper(*y);
-		
-		if(*x && *y && l1 != l2)
-			return l1-l2;
-		
-		if(*x && *y) {
-			x++;
-			y++;
+		if(*str1 && *str2 && let1 != let2)
+			return let1-let2;
+
+		if(*str1 && *str2) {
+			str1++;
+			str2++;
 		}
 	}
-	
-	if(!(*x) && *y )
-		return -1;
-	
-	if(*x && !(*y))
-		return 1;
-	
-	return 0;
+	return *str1 - *str2;
 }
 
-const char * move_left_pointer(const char *str) {
+const char *skip_left_pointer(const char *str) {
 	while(*str && !(isalnum(*str)))
 		str++;
 	
 	return str;
 }
 
-const char * move_right_pointer(const char *str) {
-	while(*str && !(isalnum(*str)))
+const char *skip_right_pointer(const char *str, int *index) {
+	while((*index) != 0 && !(isalnum(*str))) {
 		str--;
-	
+		(*index)--;
+	}
 	return str;
 }
 
 int right_compare(const void *a, const void *b) {
-	const char *x = *(const char **) a;
-	const char *y = *(const char **) b;
+	const char *str1 = *(const char **)a;
+	const char *str2 = *(const char **)b;
 
-	while(*x)
-		x++;
-	while(*y)
-		y++;
-	x = move_right_pointer(x);
-	y = move_right_pointer(y);
-	while(*x && *y) {
-		x = move_right_pointer(x);
-		y = move_right_pointer(y);
+	int x_index = strlen(str1) - 1;
+	int y_index = strlen(str2) - 1;
+	if(x_index)
+		str1 = str1 + x_index;
+	if(y_index)
+		str2 = str2 + y_index;
 
-		char l1 = toupper(*x);
-		char l2 = toupper(*y);
+
+	str1 = skip_right_pointer(str1, &x_index);
+	str2 = skip_right_pointer(str2, &y_index);
+	while(x_index && y_index) {
+		str1 = skip_right_pointer(str1, &x_index);
+		str2 = skip_right_pointer(str2, &y_index);
+
+		char let1 = toupper(*str1);
+		char let2 = toupper(*str2);
 		
-		if(*x && *y && l1 != l2)
-			return l1-l2;
+		if(x_index && y_index && let1 != let2)
+			return let1-let2;
 		
-		if(*x && *y) {
-			x--;
-			y--;
+		if(x_index && y_index) {
+			x_index--;
+			y_index--;
+			str1--;
+			str2--;
 		}
 	}
-
-	if(!(*x) && *y )
-		return -1;
-	
-	if(*x && !(*y))
-		return 1;
-	
-	return 0;
+	return x_index - y_index;
 }
